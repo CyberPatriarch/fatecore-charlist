@@ -32,7 +32,7 @@ npm install
 npm run dev
 ```
 
-Приложение откроется на `http://localhost:5173/`.
+Приложение откроется на `http://localhost:5173/fatecore-charlist/` (корень перенаправит туда же).
 
 ### Сборка и предпросмотр
 
@@ -41,7 +41,7 @@ npm run build
 npm run preview
 ```
 
-Готовые файлы — в `dist/`.
+Готовые файлы — в `dist/`. Предпросмотр сборки: `http://localhost:4173/fatecore-charlist/`.
 
 ### Тесты
 
