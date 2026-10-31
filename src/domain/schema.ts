@@ -61,8 +61,10 @@ const fieldSchema: z.ZodType<Field> = z.lazy(
 )
 
 const sectionTypographySchema = z.object({
-  titleSize: z.number().min(5).max(48).optional(),
-  bodySize: z.number().min(5).max(32).optional(),
+  // Диапазоны намеренно широкие: UI мягко ограничивает значения при вводе,
+  // а импорт не должен падать из-за промежуточного числа, сохранённого при вводе.
+  titleSize: z.number().min(0).max(1000).optional(),
+  bodySize: z.number().min(0).max(1000).optional(),
   family: z.enum(['sans', 'serif']).optional(),
   titleBold: z.boolean().optional(),
   titleItalic: z.boolean().optional(),
@@ -78,7 +80,7 @@ export const sectionSchema = z.object({
   style: z.enum(['band', 'line', 'plain']).optional(),
   accent: z.enum(['wine', 'teal', 'gold', 'slate']).optional(),
   typography: sectionTypographySchema.optional(),
-  spaceAfter: z.number().min(0).max(200).optional(),
+  spaceAfter: z.number().min(0).max(1000).optional(),
 })
 
 export const templateSchema: z.ZodType<Template> = z.object({
