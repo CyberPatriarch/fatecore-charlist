@@ -6,13 +6,15 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import type {
   Field,
   GroupField,
   Section,
   SectionAccent,
+  SectionFontFamily,
   SectionStyle,
+  SectionTypography,
   Template,
   TrackerField,
 } from '../domain/types'
@@ -61,6 +63,47 @@ const SECTION_ACCENT_LABELS: Record<SectionAccent, string> = {
   teal: 'Бирюза',
   gold: 'Золото',
   slate: 'Графит',
+}
+
+const SECTION_FONT_LABELS: Record<'default' | SectionFontFamily, string> = {
+  default: 'Как в анкете',
+  sans: 'Без засечек',
+  serif: 'С засечками',
+}
+
+function optionalNumber(raw: string): number | undefined {
+  if (raw === '') return undefined
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : undefined
+}
+
+function clampedNumber(
+  raw: string,
+  min: number,
+  max: number,
+): number | undefined {
+  const value = optionalNumber(raw)
+  if (value === undefined) return undefined
+  return Math.min(max, Math.max(min, value))
+}
+
+function sectionSwatchStyle(section: Section): CSSProperties {
+  const typography = section.typography
+
+  return {
+    fontFamily:
+      typography?.family === 'serif'
+        ? 'var(--serif)'
+        : typography?.family === 'sans'
+          ? 'var(--font)'
+          : undefined,
+    fontSize:
+      typography?.titleSize !== undefined
+        ? `${typography.titleSize}pt`
+        : undefined,
+    fontWeight: typography?.titleBold === false ? 400 : 700,
+    fontStyle: typography?.titleItalic ? 'italic' : undefined,
+  }
 }
 
 function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
@@ -132,6 +175,16 @@ export function StructureEditor({
       fields: section.fields.map((field) =>
         field.id === fieldId ? updater(field) : field,
       ),
+    }))
+  }
+
+  const updateTypography = (
+    sectionId: string,
+    patch: Partial<SectionTypography>,
+  ) => {
+    updateSection(sectionId, (section) => ({
+      ...section,
+      typography: { ...section.typography, ...patch },
     }))
   }
 
@@ -320,9 +373,185 @@ export function StructureEditor({
               className={`section-swatch section-swatch--${section.style ?? 'band'} accent-${section.accent ?? 'wine'}`}
               aria-hidden="true"
             >
-              <span>{section.title.trim() || 'Секция'}</span>
+              <span style={sectionSwatchStyle(section)}>
+                {section.title.trim() || 'Секция'}
+              </span>
               {section.description ? <small>{section.description}</small> : null}
+              {section.spaceAfter !== undefined ? (
+                <small className="section-swatch__gap">
+                  +{section.spaceAfter} мм
+                </small>
+              ) : null}
             </div>
+
+            <span className="section-appearance__divider">
+              Шрифт и отступы
+            </span>
+
+            <label className="mini-field">
+              <span>Шрифт</span>
+              <select
+                className="input input--select"
+                value={section.typography?.family ?? 'default'}
+                aria-label={`Шрифт секции «${section.title}»`}
+                onChange={(event) =>
+                  updateTypography(section.id, {
+                    family:
+                      event.target.value === 'default'
+                        ? undefined
+                        : (event.target.value as SectionFontFamily),
+                  })
+                }
+              >
+                {(
+                  Object.entries(SECTION_FONT_LABELS) as Array<
+                    ['default' | SectionFontFamily, string]
+                  >
+                ).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="mini-field">
+              <span>Заголовок, pt</span>
+              <input
+                className="input input--number"
+                type="number"
+                min={5}
+                max={48}
+                step={0.5}
+                value={section.typography?.titleSize ?? ''}
+                placeholder={section.style === 'band' ? '11.6' : '12.5'}
+                aria-label={`Размер заголовка секции «${section.title}»`}
+                onChange={(event) =>
+                  updateTypography(section.id, {
+                    titleSize: optionalNumber(event.target.value),
+                  })
+                }
+                onBlur={(event) => {
+                  const titleSize = clampedNumber(event.target.value, 5, 48)
+                  if (titleSize !== section.typography?.titleSize) {
+                    updateTypography(section.id, { titleSize })
+                  }
+                }}
+              />
+            </label>
+
+            <label className="mini-field">
+              <span>Текст, pt</span>
+              <input
+                className="input input--number"
+                type="number"
+                min={5}
+                max={32}
+                step={0.5}
+                value={section.typography?.bodySize ?? ''}
+                placeholder="9.6"
+                aria-label={`Размер текста секции «${section.title}»`}
+                onChange={(event) =>
+                  updateTypography(section.id, {
+                    bodySize: optionalNumber(event.target.value),
+                  })
+                }
+                onBlur={(event) => {
+                  const bodySize = clampedNumber(event.target.value, 5, 32)
+                  if (bodySize !== section.typography?.bodySize) {
+                    updateTypography(section.id, { bodySize })
+                  }
+                }}
+              />
+            </label>
+
+            <label className="mini-field">
+              <span>Отступ после, мм</span>
+              <input
+                className="input input--number"
+                type="number"
+                min={0}
+                max={200}
+                step={1}
+                value={section.spaceAfter ?? ''}
+                placeholder="3.7"
+                aria-label={`Отступ после секции «${section.title}»`}
+                onChange={(event) =>
+                  updateSection(section.id, (current) => ({
+                    ...current,
+                    spaceAfter: optionalNumber(event.target.value),
+                  }))
+                }
+                onBlur={(event) => {
+                  const spaceAfter = clampedNumber(event.target.value, 0, 200)
+                  if (spaceAfter !== section.spaceAfter) {
+                    updateSection(section.id, (current) => ({
+                      ...current,
+                      spaceAfter,
+                    }))
+                  }
+                }}
+              />
+            </label>
+
+            <div className="section-type-toggles">
+              <span className="section-type-toggles__label">Заголовок</span>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={section.typography?.titleBold !== false}
+                  onChange={(event) =>
+                    updateTypography(section.id, {
+                      titleBold: event.target.checked ? undefined : false,
+                    })
+                  }
+                />
+                полужирный
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={section.typography?.titleItalic ?? false}
+                  onChange={(event) =>
+                    updateTypography(section.id, {
+                      titleItalic: event.target.checked || undefined,
+                    })
+                  }
+                />
+                курсив
+              </label>
+
+              <span className="section-type-toggles__label">Текст</span>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={section.typography?.bodyBold ?? false}
+                  onChange={(event) =>
+                    updateTypography(section.id, {
+                      bodyBold: event.target.checked || undefined,
+                    })
+                  }
+                />
+                полужирный
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={section.typography?.bodyItalic ?? false}
+                  onChange={(event) =>
+                    updateTypography(section.id, {
+                      bodyItalic: event.target.checked || undefined,
+                    })
+                  }
+                />
+                курсив
+              </label>
+            </div>
+
+            <p className="section-appearance__hint">
+              Отступ после секции создаёт пустое место в печати — например, для
+              заметок от руки.
+            </p>
           </div>
 
           <div className="structure-fields">
@@ -643,8 +872,13 @@ function TrackerSettings({
     updateTracker((current) => {
       const nextCount = Math.max(0, Math.min(20, count))
       const boxes = current.boxes.slice(0, nextCount)
+      const nextValue = () =>
+        boxes.reduce((max, box) => Math.max(max, box.value ?? 0), 0) + 1
       while (boxes.length < nextCount) {
-        boxes.push({ id: uid('box'), value: mode === 'valued' ? boxes.length + 1 : undefined })
+        boxes.push({
+          id: uid('box'),
+          value: mode === 'valued' ? nextValue() : undefined,
+        })
       }
       return {
         ...current,
@@ -698,6 +932,41 @@ function TrackerSettings({
         />
         Разрешить добавлять и убирать кружки
       </label>
+
+      {field.mode === 'valued' ? (
+        <div className="tracker-values-editor">
+          <div className="tracker-values-editor__title">Значения кружков</div>
+          <div className="tracker-values-editor__grid">
+            {field.boxes.map((box, index) => (
+              <label key={box.id} className="tracker-value-field">
+                <span>{index + 1}</span>
+                <input
+                  className="input input--number"
+                  type="number"
+                  step="any"
+                  value={box.value ?? ''}
+                  placeholder={String(index + 1)}
+                  aria-label={`Значение кружка ${index + 1}`}
+                  onChange={(event) => {
+                    const value = optionalNumber(event.target.value)
+                    updateTracker((current) => ({
+                      ...current,
+                      boxes: current.boxes.map((item) =>
+                        item.id === box.id ? { ...item, value } : item,
+                      ),
+                    }))
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          <p className="tracker-values-editor__hint">
+            Можно указать любые числа, в том числе не по порядку. Пустое поле
+            означает значение по номеру кружка.
+          </p>
+        </div>
+      ) : null}
+
       <div className="tracker-preview" aria-hidden="true">
         {field.boxes.map((box) => (
           <span key={box.id} className="tracker-box tracker-box--preview">

@@ -3,8 +3,10 @@ import {
   APP_VERSION,
   CHARACTER_FORMAT,
   SCHEMA_VERSION,
+  TEMPLATE_FORMAT,
   type GroupField,
   type GroupValue,
+  type TrackerField,
   type TrackerValue,
 } from './types'
 import {
@@ -59,6 +61,23 @@ describe('syncValuesToTemplate', () => {
     expect(nextTracker.boxes[0].checked).toBe(true)
   })
 
+  it('applies custom tracker box values from the field definition', () => {
+    const template = createFateCoreTemplate()
+    const character = createCharacterFromTemplate(template)
+    const nextTemplate = structuredClone(template)
+    const stress = nextTemplate.sections.find(
+      (section) => section.id === 'sec_stress',
+    )
+    const tracker = stress?.fields[0] as TrackerField
+    tracker.boxes[0].value = 10
+    tracker.boxes[1].value = 25
+
+    const synced = syncValuesToTemplate(nextTemplate, character.values)
+    const nextTracker = synced[tracker.id] as TrackerValue
+
+    expect(nextTracker.boxes.map((box) => box.value)).toEqual([10, 25, 3, 4])
+  })
+
   it('adds values for new fields and removes values of deleted fields', () => {
     const template = createFateCoreTemplate()
     const character = createCharacterFromTemplate(template, 'Ари')
@@ -97,6 +116,36 @@ describe('import schema', () => {
     if (parsed.kind === 'character') {
       expect(parsed.character.name).toBe('Ари')
       expect(parsed.character.templateSnapshot.sections.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('parses section typography and spacing', () => {
+    const template = createFateCoreTemplate()
+    template.sections[0].typography = {
+      titleSize: 15,
+      bodySize: 10,
+      family: 'serif',
+      titleItalic: true,
+      bodyBold: true,
+    }
+    template.sections[0].spaceAfter = 18
+
+    const parsed = parseImportData({
+      format: TEMPLATE_FORMAT,
+      schemaVersion: SCHEMA_VERSION,
+      template,
+    })
+
+    expect(parsed.kind).toBe('template')
+    if (parsed.kind === 'template') {
+      expect(parsed.template.sections[0].typography).toEqual({
+        titleSize: 15,
+        bodySize: 10,
+        family: 'serif',
+        titleItalic: true,
+        bodyBold: true,
+      })
+      expect(parsed.template.sections[0].spaceAfter).toBe(18)
     }
   })
 

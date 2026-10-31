@@ -9,6 +9,20 @@ export type TrackerMode = 'boxes' | 'valued'
 export type GroupPreset = 'custom' | 'skills' | 'tricks' | 'consequences'
 export type SectionStyle = 'band' | 'line' | 'plain'
 export type SectionAccent = 'wine' | 'teal' | 'gold' | 'slate'
+export type SectionFontFamily = 'sans' | 'serif'
+
+export interface SectionTypography {
+  /** Размер заголовка секции в пунктах. */
+  titleSize?: number
+  /** Размер основного текста секции в пунктах. */
+  bodySize?: number
+  /** Семейство шрифта: без засечек или с засечками. */
+  family?: SectionFontFamily
+  titleBold?: boolean
+  titleItalic?: boolean
+  bodyBold?: boolean
+  bodyItalic?: boolean
+}
 
 export interface FieldBase {
   id: string
@@ -79,6 +93,10 @@ export interface Section {
   style?: SectionStyle
   /** Цветовой акцент секции. По умолчанию — винный. */
   accent?: SectionAccent
+  /** Настройки шрифта для печати. */
+  typography?: SectionTypography
+  /** Дополнительное пустое место после секции в миллиметрах. */
+  spaceAfter?: number
 }
 
 export interface Template {

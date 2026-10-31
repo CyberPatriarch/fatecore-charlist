@@ -1,4 +1,5 @@
-import type { Character } from '../domain/types'
+import type { CSSProperties } from 'react'
+import type { Character, Section } from '../domain/types'
 import { getCharacterDisplayName, isEmptyValue } from '../domain/values'
 import { FieldView } from './FieldView'
 
@@ -7,6 +8,46 @@ interface PrintableSheetProps {
   hideEmpty?: boolean
   grayscale?: boolean
   density?: 'compact' | 'normal' | 'large'
+}
+
+/** Превращает настройки секции в CSS-переменные печатного листа. */
+function sectionPrintStyle(section: Section): CSSProperties | undefined {
+  const typography = section.typography
+  const style: Record<string, string> = {}
+
+  if (typography?.bodySize !== undefined) {
+    style['--section-body-size'] = `${typography.bodySize}pt`
+    style['--section-label-size'] = `${Math.round(typography.bodySize * 0.74 * 10) / 10}pt`
+  }
+
+  if (typography?.titleSize !== undefined) {
+    style['--section-title-size'] = `${typography.titleSize}pt`
+  }
+
+  if (typography?.family) {
+    const font = typography.family === 'serif' ? 'var(--serif)' : 'var(--font)'
+    style['--section-font'] = font
+    style['--section-title-font'] = font
+  }
+
+  if (typography?.titleBold === false) {
+    style['--section-title-weight'] = '400'
+  }
+  if (typography?.titleItalic) {
+    style['--section-title-style'] = 'italic'
+  }
+  if (typography?.bodyBold) {
+    style['--section-body-weight'] = '700'
+  }
+  if (typography?.bodyItalic) {
+    style['--section-body-style'] = 'italic'
+  }
+
+  if (section.spaceAfter !== undefined) {
+    style['--section-gap'] = `${section.spaceAfter}mm`
+  }
+
+  return Object.keys(style).length > 0 ? (style as CSSProperties) : undefined
 }
 
 export function PrintableSheet({
@@ -44,6 +85,7 @@ export function PrintableSheet({
           <section
             key={section.id}
             className={`print-section print-section--${style} accent-${accent}`}
+            style={sectionPrintStyle(section)}
           >
             <div className="print-section__header">
               <h2>{section.title}</h2>

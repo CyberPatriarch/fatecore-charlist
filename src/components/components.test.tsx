@@ -124,6 +124,40 @@ describe('PrintableSheet', () => {
       container.querySelector('.print-section--line.accent-teal'),
     ).toBeTruthy()
   })
+
+  it('applies section typography and spacing to the printed sheet', () => {
+    const template = createFateCoreTemplate()
+    template.sections[0].typography = {
+      titleSize: 16,
+      bodySize: 11,
+      family: 'serif',
+      titleBold: false,
+      titleItalic: true,
+      bodyBold: true,
+      bodyItalic: true,
+    }
+    template.sections[0].spaceAfter = 12
+    const character = createCharacterFromTemplate(template, 'Ари')
+
+    const { container } = render(
+      <PrintableSheet character={character} hideEmpty={false} />,
+    )
+    const section = container.querySelector('.print-section') as HTMLElement
+
+    expect(section.style.getPropertyValue('--section-title-size')).toBe('16pt')
+    expect(section.style.getPropertyValue('--section-body-size')).toBe('11pt')
+    expect(section.style.getPropertyValue('--section-label-size')).toBe('8.1pt')
+    expect(section.style.getPropertyValue('--section-font')).toBe('var(--serif)')
+    expect(section.style.getPropertyValue('--section-title-weight')).toBe('400')
+    expect(section.style.getPropertyValue('--section-title-style')).toBe(
+      'italic',
+    )
+    expect(section.style.getPropertyValue('--section-body-weight')).toBe('700')
+    expect(section.style.getPropertyValue('--section-body-style')).toBe(
+      'italic',
+    )
+    expect(section.style.getPropertyValue('--section-gap')).toBe('12mm')
+  })
 })
 
 describe('StructureEditor', () => {
@@ -149,6 +183,64 @@ describe('StructureEditor', () => {
     const withAccent = onChange.mock.calls[1][0] as typeof template
     expect(withStyle.sections[0].style).toBe('line')
     expect(withAccent.sections[0].accent).toBe('gold')
+  })
+
+  it('configures section typography and spacing', () => {
+    const template = createBlankTemplate()
+    const onChange = vi.fn()
+    render(
+      <StructureEditor
+        template={template}
+        onChange={onChange}
+        context="template"
+      />,
+    )
+
+    fireEvent.change(
+      screen.getByLabelText('Размер заголовка секции «Основное»'),
+      { target: { value: '16' } },
+    )
+    fireEvent.change(
+      screen.getByLabelText('Отступ после секции «Основное»'),
+      { target: { value: '20' } },
+    )
+    fireEvent.click(screen.getAllByLabelText('курсив')[0])
+
+    const withTitle = onChange.mock.calls[0][0] as typeof template
+    const withGap = onChange.mock.calls[1][0] as typeof template
+    const withItalic = onChange.mock.calls[2][0] as typeof template
+
+    expect(withTitle.sections[0].typography?.titleSize).toBe(16)
+    expect(withGap.sections[0].spaceAfter).toBe(20)
+    expect(withItalic.sections[0].typography?.titleItalic).toBe(true)
+  })
+
+  it('allows arbitrary values on a valued tracker', () => {
+    const template = createBlankTemplate()
+    const tracker = createFieldDefinition('tracker') as TrackerField
+    tracker.mode = 'valued'
+    tracker.boxes = [
+      { id: 'box_a', value: 1 },
+      { id: 'box_b', value: 2 },
+    ]
+    template.sections[0].fields.push(tracker)
+
+    const onChange = vi.fn()
+    render(
+      <StructureEditor
+        template={template}
+        onChange={onChange}
+        context="template"
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Значение кружка 2'), {
+      target: { value: '7' },
+    })
+
+    const next = onChange.mock.calls[0][0] as typeof template
+    const nextTracker = next.sections[0].fields[1] as TrackerField
+    expect(nextTracker.boxes[1].value).toBe(7)
   })
 
   it('adds a field to a section', () => {

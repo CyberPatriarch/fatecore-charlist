@@ -60,6 +60,16 @@ const fieldSchema: z.ZodType<Field> = z.lazy(
     ]) as unknown as z.ZodType<Field>,
 )
 
+const sectionTypographySchema = z.object({
+  titleSize: z.number().min(5).max(48).optional(),
+  bodySize: z.number().min(5).max(32).optional(),
+  family: z.enum(['sans', 'serif']).optional(),
+  titleBold: z.boolean().optional(),
+  titleItalic: z.boolean().optional(),
+  bodyBold: z.boolean().optional(),
+  bodyItalic: z.boolean().optional(),
+})
+
 export const sectionSchema = z.object({
   id: z.string().min(1),
   title: z.string(),
@@ -67,6 +77,8 @@ export const sectionSchema = z.object({
   fields: z.array(fieldSchema),
   style: z.enum(['band', 'line', 'plain']).optional(),
   accent: z.enum(['wine', 'teal', 'gold', 'slate']).optional(),
+  typography: sectionTypographySchema.optional(),
+  spaceAfter: z.number().min(0).max(200).optional(),
 })
 
 export const templateSchema: z.ZodType<Template> = z.object({
