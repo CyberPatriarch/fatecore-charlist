@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Project site живёт в подкаталоге: https://cyberpatriarch.github.io/fatecore-charlist/
+  base: '/fatecore-charlist/',
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
